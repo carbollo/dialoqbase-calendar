@@ -278,14 +278,33 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
           </Switch>
         </Switch.Group>
         {data.connectBtn && (
-          <a href={data.connectBtn.link.startsWith('http') ? data.connectBtn.link : `${hostUrl}${data.connectBtn.link}`}>
+          data.connectBtn.link.startsWith('/api') ? (
             <button
               type="button"
+              onClick={async () => {
+                try {
+                  const response = await api.get(data.connectBtn!.link);
+                  if (response.data && response.data.url) {
+                    window.location.href = response.data.url;
+                  }
+                } catch (error) {
+                  notification.error({ message: "Error", description: "Failed to initiate connection" });
+                }
+              }}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
             >
               {data.connectBtn.text}
             </button>
-          </a>
+          ) : (
+            <a href={data.connectBtn.link} target="_blank" rel="noreferrer">
+              <button
+                type="button"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+              >
+                {data.connectBtn.text}
+              </button>
+            </a>
+          )
         )}
       </div>
     </>
