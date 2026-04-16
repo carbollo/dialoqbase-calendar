@@ -167,10 +167,16 @@ export const createChain = ({
   if (tools && tools.length > 0) {
     // Agent approach if tools are provided
     let agent_response_template = response_template.replace(/{question}/g, "{input}");
-    agent_response_template += `\n\nIMPORTANT: You have access to a tool to schedule appointments in Google Calendar. 
-If the user asks to schedule an appointment, you MUST ask them for the required information (date, time, and any other details) BEFORE using the tool. 
-DO NOT guess or make up the date, time, or name. 
-ONLY confirm the appointment IF the tool returns a success message.`;
+    agent_response_template += `\n\nIMPORTANTE: Tienes acceso a una herramienta para agendar citas en Google Calendar.
+Si el usuario pide una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes datos ANTES de usar la herramienta:
+1. Nombre y apellidos
+2. Día y hora de la cita
+3. Número de teléfono
+
+NO preguntes por ningún otro dato (ni email, ni motivo, etc.).
+NO te inventes los datos. Si falta alguno de estos 3 datos, vuelve a preguntarle al usuario.
+Una vez tengas los 3 datos, usa la herramienta para crear el evento.
+SOLO confirma la cita si la herramienta te devuelve un mensaje de éxito.`;
 
     const prompt = ChatPromptTemplate.fromMessages([
       ["system", agent_response_template + "\n\nContext:\n{context}"],

@@ -17,19 +17,18 @@ export const createGoogleCalendarTool = (credentials: { refresh_token: string })
 
   return new DynamicStructuredTool({
     name: "schedule_appointment",
-    description: "Schedules an appointment or event in Google Calendar. Provide the summary, start time, and end time in ISO 8601 format.",
+    description: "Schedules an appointment or event in Google Calendar. Provide the customer's name, phone number, start time, and end time in ISO 8601 format.",
     schema: z.object({
-      summary: z.string().describe("The title or summary of the appointment"),
-      description: z.string().optional().describe("Optional description of the appointment"),
+      customerName: z.string().describe("Nombre y apellidos del cliente / First and last name of the customer"),
+      phoneNumber: z.string().describe("Número de teléfono del cliente / Phone number of the customer"),
       startTime: z.string().describe("Start time of the event in ISO 8601 format (e.g., 2026-04-16T10:00:00Z)"),
       endTime: z.string().describe("End time of the event in ISO 8601 format (e.g., 2026-04-16T11:00:00Z)"),
-      attendeeEmail: z.string().optional().describe("Optional email address of the person to invite"),
     }) as any,
-    func: async ({ summary, description, startTime, endTime, attendeeEmail }) => {
+    func: async ({ customerName, phoneNumber, startTime, endTime }) => {
       try {
         const event: any = {
-          summary,
-          description,
+          summary: `Cita: ${customerName}`,
+          description: `Teléfono de contacto: ${phoneNumber}`,
           start: {
             dateTime: startTime,
             timeZone: "UTC",
@@ -39,10 +38,6 @@ export const createGoogleCalendarTool = (credentials: { refresh_token: string })
             timeZone: "UTC",
           },
         };
-
-        if (attendeeEmail) {
-          event.attendees = [{ email: attendeeEmail }];
-        }
 
         const res = await calendar.events.insert({
           calendarId: "primary",
