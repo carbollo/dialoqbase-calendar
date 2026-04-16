@@ -24,6 +24,7 @@ export type BotSettings = {
     autoSyncDataSources: boolean;
     internetSearchEnabled: boolean;
     internalSearchEnabled: boolean;
+    options: any;
   };
   chatModel: {
     label: string;

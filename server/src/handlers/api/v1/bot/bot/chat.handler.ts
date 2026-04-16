@@ -9,6 +9,7 @@ import { chatModelProvider } from "../../../../../utils/models";
 import { createChain, groupMessagesByConversation } from "../../../../../chain";
 import { getModelInfo } from "../../../../../utils/get-model-info";
 import { nextTick } from "../../../../../utils/nextTick";
+import { createGoogleCalendarTool } from "../../../../../tools/google-calendar";
 
 async function getBotAndEmbedding(request: FastifyRequest<ChatAPIRequest>) {
   const bot_id = request.params.id;
@@ -132,16 +133,25 @@ async function handleChatRequest(
       }))
     );
 
+    const tools = [];
+    if (bot.options && (bot.options as any).google_calendar) {
+      const creds = (bot.options as any).google_calendar;
+      if (creds.client_email && creds.private_key) {
+        tools.push(createGoogleCalendarTool(creds));
+      }
+    }
+
     const chain = createChain({
-      llm: isStreaming ? model.withStreaming() : model,
+      llm: isStreaming && tools.length === 0 ? model.withStreaming() : model,
       question_llm: model,
       question_template: bot.questionGeneratorPrompt,
       response_template: bot.qaPrompt,
       retriever,
+      tools,
     });
 
     let response = "";
-    if (isStreaming) {
+    if (isStreaming && tools.length === 0) {
       const stream = await chain.stream({
         question: sanitizedQuestion,
         chat_history: chatHistory,
@@ -162,10 +172,11 @@ async function handleChatRequest(
         response += token;
       }
     } else {
-      response = await chain.invoke({
+      const result = await chain.invoke({
         question: sanitizedQuestion,
         chat_history: chatHistory,
       });
+      response = typeof result === "string" ? result : result.output || result;
     }
 
     const documents = await documentPromise;

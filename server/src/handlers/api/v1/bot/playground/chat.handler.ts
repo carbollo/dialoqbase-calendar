@@ -4,6 +4,7 @@ import { embeddings } from "../../../../../utils/embeddings";
 import { createChain, groupMessagesByConversation } from "../../../../../chain";
 import { getModelInfo } from "../../../../../utils/get-model-info";
 import { nextTick } from "../../../../../utils/nextTick";
+import { createGoogleCalendarTool } from "../../../../../tools/google-calendar";
 import {
   createChatModel,
   createRetriever,
@@ -89,16 +90,25 @@ export const chatRequestHandler = async (
     const botConfig = getBotConfig(bot, modelinfo);
     const model = createChatModel(bot, bot.temperature, botConfig);
 
+    const tools = [];
+    if (bot.options && (bot.options as any).google_calendar) {
+      const creds = (bot.options as any).google_calendar;
+      if (creds.client_email && creds.private_key) {
+        tools.push(createGoogleCalendarTool(creds));
+      }
+    }
+
     const chain = createChain({
       llm: model,
       question_llm: model,
       question_template: bot.questionGeneratorPrompt,
       response_template: bot.qaPrompt,
       retriever,
+      tools,
     });
 
     const sanitizedQuestion = message.trim().replaceAll("\n", " ");
-    const botResponse = await chain.invoke({
+    const result = await chain.invoke({
       question: sanitizedQuestion,
       chat_history: groupMessagesByConversation(
         history.slice(-bot.noOfChatHistoryInContext).map((message) => ({
@@ -107,6 +117,7 @@ export const chatRequestHandler = async (
         }))
       ),
     });
+    const botResponse = typeof result === "string" ? result : result.output || result;
 
     const documents = await retriever.getRelevantDocuments(sanitizedQuestion);
     const historyId = await saveChatHistory(
@@ -230,35 +241,63 @@ export const chatRequestStreamHandler = async (
     );
     const nonStreamingModel = createChatModel(bot, bot.temperature, botConfig);
 
+    const tools = [];
+    if (bot.options && (bot.options as any).google_calendar) {
+      const creds = (bot.options as any).google_calendar;
+      if (creds.client_email && creds.private_key) {
+        tools.push(createGoogleCalendarTool(creds));
+      }
+    }
+
     reply.raw.setHeader("Content-Type", "text/event-stream");
 
     const chain = createChain({
-      llm: streamedModel,
+      llm: tools.length === 0 ? streamedModel : nonStreamingModel,
       question_llm: nonStreamingModel,
       question_template: bot.questionGeneratorPrompt,
       response_template: bot.qaPrompt,
       retriever,
+      tools,
     });
 
     const sanitizedQuestion = message.trim().replaceAll("\n", " ");
     let response = "";
-    const stream = await chain.stream({
-      question: sanitizedQuestion,
-      chat_history: groupMessagesByConversation(
-        history.slice(-bot.noOfChatHistoryInContext).map((message) => ({
-          type: message.type,
-          content: message.text,
-        }))
-      ),
-    });
+    if (tools.length === 0) {
+      const stream = await chain.stream({
+        question: sanitizedQuestion,
+        chat_history: groupMessagesByConversation(
+          history.slice(-bot.noOfChatHistoryInContext).map((message) => ({
+            type: message.type,
+            content: message.text,
+          }))
+        ),
+      });
 
-    for await (const token of stream) {
+      for await (const token of stream) {
+        reply.sse({
+          id: "",
+          event: "chunk",
+          data: JSON.stringify({ message: token || "" }),
+        });
+        response += token;
+      }
+    } else {
+      const result = await chain.invoke({
+        question: sanitizedQuestion,
+        chat_history: groupMessagesByConversation(
+          history.slice(-bot.noOfChatHistoryInContext).map((message) => ({
+            type: message.type,
+            content: message.text,
+          }))
+        ),
+      });
+      response = typeof result === "string" ? result : result.output || result;
+      // Send the entire response as a single chunk for simplicity when using tools
       reply.sse({
         id: "",
         event: "chunk",
-        data: JSON.stringify({ message: token || "" }),
+        data: JSON.stringify({ message: response || "" }),
       });
-      response += token;
     }
 
     const documents = await retriever.getRelevantDocuments(sanitizedQuestion);

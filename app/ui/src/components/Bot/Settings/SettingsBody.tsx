@@ -170,6 +170,7 @@ export const SettingsBody: React.FC<BotSettings> = ({
             inactivityTimeout: data.inactivityTimeout,
             autoSyncDataSources: data.autoSyncDataSources,
             internetSearchEnabled: data.internetSearchEnabled,
+            options: data.options,
           }}
           form={form}
           requiredMark={false}
@@ -469,6 +470,31 @@ export const SettingsBody: React.FC<BotSettings> = ({
                 >
                   <Switch />
                 </Form.Item>
+
+                <div className="mt-8 mb-4 border-t border-gray-200 dark:border-gray-700 pt-6">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">
+                    Google Calendar Integration
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Add your Google Service Account credentials to allow the bot to schedule appointments on your behalf.
+                  </p>
+                  
+                  <Form.Item
+                    name={["options", "google_calendar", "client_email"]}
+                    label="Client Email"
+                    help="The client_email from your Google Cloud Service Account JSON."
+                  >
+                    <Input size="large" placeholder="e.g. my-bot@my-project.iam.gserviceaccount.com" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name={["options", "google_calendar", "private_key"]}
+                    label="Private Key"
+                    help="The private_key from your Google Cloud Service Account JSON."
+                  >
+                    <Input.TextArea size="large" rows={4} placeholder="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n" />
+                  </Form.Item>
+                </div>
               </div>
             </div>
 

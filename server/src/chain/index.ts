@@ -15,6 +15,7 @@ import {
   RunnableMap,
   RunnableSequence,
 } from "@langchain/core/runnables";
+import { AgentExecutor, createOpenAIToolsAgent } from "langchain/agents";
 
 type RetrievalChainInput = {
   chat_history: string;
@@ -119,16 +120,17 @@ export const createChain = ({
   question_llm,
   retriever,
   response_template,
+  tools = [],
 }: {
   llm: BaseLanguageModel<any> | BaseChatModel<any>;
   question_llm: BaseLanguageModel<any> | BaseChatModel<any>;
   retriever: Runnable;
   question_template: string;
   response_template: string;
+  tools?: any[];
 }) => {
 
   question_template = updateTemplateVariables(question_template);
-  
   response_template = updateTemplateVariables(response_template);
 
   const retrieverChain = createRetrieverChain(
@@ -136,6 +138,7 @@ export const createChain = ({
     retriever,
     question_template
   );
+  
   const context = RunnableMap.from({
     context: RunnableSequence.from([
       ({ question, chat_history }) => {
@@ -160,6 +163,50 @@ export const createChain = ({
       runName: "Itemgetter:chat_history",
     }),
   }).withConfig({ tags: ["RetrieveDocs"] });
+
+    if (tools && tools.length > 0) {
+    // Agent approach if tools are provided
+    const prompt = ChatPromptTemplate.fromMessages([
+      ["system", response_template + "\n\nContext:\n{context}"],
+      new MessagesPlaceholder("chat_history"),
+      ["human", "{input}"],
+      new MessagesPlaceholder("agent_scratchpad"),
+    ]);
+
+    const agent = createOpenAIToolsAgent({
+      llm: llm as any,
+      tools,
+      prompt,
+    });
+
+    const agentExecutor = new AgentExecutor({
+      agent,
+      tools,
+    });
+
+    return RunnableSequence.from([
+      {
+        question: RunnableLambda.from(
+          (input: RetrievalChainInput) => input.question
+        ).withConfig({
+          runName: "Itemgetter:question",
+        }),
+        chat_history: RunnableLambda.from(serializeHistory).withConfig({
+          runName: "SerializeHistory",
+        }),
+      },
+      context,
+      async (input: any) => {
+        const result = await agentExecutor.invoke({
+          input: input.question,
+          chat_history: input.chat_history,
+          context: input.context,
+        });
+        return result.output;
+      },
+    ]);
+  }
+
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", response_template],
     new MessagesPlaceholder("chat_history"),
@@ -173,6 +220,7 @@ export const createChain = ({
   ]).withConfig({
     tags: ["GenerateResponse"],
   });
+  
   return RunnableSequence.from([
     {
       question: RunnableLambda.from(

@@ -79,6 +79,7 @@ export interface UpdateBotById {
     bot_protect?: boolean;
     use_rag?: boolean;
     bot_model_api_key?: string;
+    options?: any;
   };
 }
 

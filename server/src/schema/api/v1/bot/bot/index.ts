@@ -190,6 +190,9 @@ export const updateBotByIdSchema: FastifySchema = {
       noOfDocumentsToRetrieve: {
         type: "number",
       },
+      options: {
+        type: "object",
+      },
     },
   },
 };
