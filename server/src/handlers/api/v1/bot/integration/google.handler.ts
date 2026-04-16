@@ -29,11 +29,17 @@ export const googleCalendarAuthHandler = async (
     });
   }
 
+  const origin = request.headers.origin || request.headers.referer || process.env.VITE_HOST_URL || "http://localhost:5173";
+  const hostUrl = new URL(origin).origin;
+  
+  const stateObj = { bot_id: id, hostUrl };
+  const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
+
   const oauth2Client = getGoogleOAuthClient();
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: ["https://www.googleapis.com/auth/calendar.events"],
-    state: id,
+    state: state,
     prompt: "consent", // Force consent to ensure we get a refresh token
   });
 
@@ -44,10 +50,14 @@ export const googleCalendarCallbackHandler = async (
   request: FastifyRequest<{ Querystring: { code: string; state: string } }>,
   reply: FastifyReply
 ) => {
-  const { code, state: bot_id } = request.query;
+  const { code, state } = request.query;
   const prisma = request.server.prisma;
 
   try {
+    const stateObj = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+    const bot_id = stateObj.bot_id;
+    const hostUrl = stateObj.hostUrl;
+
     const bot = await prisma.bot.findFirst({
       where: {
         id: bot_id,
@@ -81,7 +91,6 @@ export const googleCalendarCallbackHandler = async (
     });
 
     // Redirect back to the frontend integration page
-    const hostUrl = process.env.VITE_HOST_URL || "http://localhost:5173";
     return reply.redirect(`${hostUrl}/bot/${bot.id}/integrations`);
   } catch (error) {
     console.error("Error in Google Calendar OAuth callback:", error);
