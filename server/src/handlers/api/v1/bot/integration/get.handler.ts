@@ -206,7 +206,7 @@ export async function getChannelsByProvider(
       textColor: "#000",
       connectBtn: {
         text: "Connect to Google Calendar",
-        link: `/api/v1/bot/${id}/google_calendar/auth`,
+        link: `/api/v1/bot/integration/${id}/google_calendar/auth`,
       },
     },
     // {

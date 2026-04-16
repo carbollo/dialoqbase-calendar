@@ -278,7 +278,7 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
           </Switch>
         </Switch.Group>
         {data.connectBtn && (
-          <a href={data.connectBtn.link}>
+          <a href={data.connectBtn.link.startsWith('http') ? data.connectBtn.link : `${hostUrl}${data.connectBtn.link}`}>
             <button
               type="button"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
