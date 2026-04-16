@@ -4,12 +4,11 @@ import { google } from "googleapis";
 
 export const createGoogleCalendarTool = (credentials: { client_email: string; private_key: string }) => {
   const scopes = ["https://www.googleapis.com/auth/calendar.events"];
-  const jwtClient = new google.auth.JWT(
-    credentials.client_email,
-    undefined,
-    credentials.private_key.replace(/\\n/g, "\n"),
-    scopes
-  );
+  const jwtClient = new google.auth.JWT({
+    email: credentials.client_email,
+    key: credentials.private_key.replace(/\\n/g, "\n"),
+    scopes,
+  });
 
   const calendar = google.calendar({ version: "v3", auth: jwtClient });
 

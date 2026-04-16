@@ -164,7 +164,7 @@ export const createChain = ({
     }),
   }).withConfig({ tags: ["RetrieveDocs"] });
 
-    if (tools && tools.length > 0) {
+  if (tools && tools.length > 0) {
     // Agent approach if tools are provided
     const prompt = ChatPromptTemplate.fromMessages([
       ["system", response_template + "\n\nContext:\n{context}"],
@@ -172,17 +172,6 @@ export const createChain = ({
       ["human", "{input}"],
       new MessagesPlaceholder("agent_scratchpad"),
     ]);
-
-    const agent = createOpenAIToolsAgent({
-      llm: llm as any,
-      tools,
-      prompt,
-    });
-
-    const agentExecutor = new AgentExecutor({
-      agent,
-      tools,
-    });
 
     return RunnableSequence.from([
       {
@@ -197,6 +186,15 @@ export const createChain = ({
       },
       context,
       async (input: any) => {
+        const agent = await createOpenAIToolsAgent({
+          llm: llm as any,
+          tools,
+          prompt,
+        });
+        const agentExecutor = new AgentExecutor({
+          agent,
+          tools,
+        });
         const result = await agentExecutor.invoke({
           input: input.question,
           chat_history: input.chat_history,

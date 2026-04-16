@@ -773,7 +773,7 @@
     "@langchain/core" ">0.1.5  <0.3.0"
     zod-to-json-schema "^3.22.4"
 
-"@langchain/openai@^0.0.18", "@langchain/openai@~0.0.14":
+"@langchain/openai@~0.0.14":
   version "0.0.18"
   resolved "https://registry.npmjs.org/@langchain/openai/-/openai-0.0.18.tgz"
   integrity sha512-SBY1PlwiHIcjW185yVXHo4XXgTVAyGxw7IHpuEqs7201/EVjFW91HskzGRvduYm2td3/NV91BBVFgXhJQcvtmA==
