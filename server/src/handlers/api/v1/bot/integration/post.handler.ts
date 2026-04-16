@@ -277,6 +277,22 @@ export const createIntergationHandler = async (
         message: "Integration created",
       });
 
+    case "google_calendar":
+      const options = (isBot.options as any) || {};
+      const newOptions = {
+        ...options,
+        google_calendar: {
+          client_email: request.body.value.google_calendar_client_email,
+          private_key: request.body.value.google_calendar_private_key,
+          is_paused: options.google_calendar?.is_paused || false,
+        }
+      };
+      await prisma.bot.update({
+        where: { id: isBot.id },
+        data: { options: newOptions }
+      });
+      return reply.status(200).send({ message: "Integration created" });
+
     default:
       return reply.status(400).send({
         message: "Invalid type",
@@ -301,6 +317,26 @@ export const pauseOrResumeIntergationHandler = async (
   if (!isBot) {
     return reply.status(404).send({
       message: "Bot not found",
+    });
+  }
+
+  if (request.body.provider === "google_calendar") {
+    const options = (isBot.options as any) || {};
+    if (!options.google_calendar) {
+      return reply.status(404).send({
+        message: "Google Calendar integration not found",
+      });
+    }
+    
+    options.google_calendar.is_paused = !options.google_calendar.is_paused;
+    
+    await prismas.bot.update({
+      where: { id: isBot.id },
+      data: { options }
+    });
+    
+    return reply.status(200).send({
+      message: "Integration updated",
     });
   }
 

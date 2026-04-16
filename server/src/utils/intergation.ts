@@ -3,7 +3,8 @@ export const CHANNELS = [
   "discord",
   "whatsapp",
   "slack",
-  "website"
+  "website",
+  "google_calendar"
 ];
 
 export const geProviderRequiredFields = (channel: string) => {
@@ -30,6 +31,11 @@ export const geProviderRequiredFields = (channel: string) => {
         "slack_auth_token",
         "slack_signing_secret",
         "slack_app_token"
+      ];
+    case "google_calendar":
+      return [
+        "google_calendar_client_email",
+        "google_calendar_private_key"
       ];
     default:
       return null;

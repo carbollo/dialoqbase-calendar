@@ -192,6 +192,21 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
                 <AntdSwitch />
               </Form.Item>
             );
+          } else if (field.inputType === "textarea") {
+            return (
+              <Form.Item
+                key={index}
+                label={field.title}
+                name={field.name}
+                rules={[{ required: true, message: field.requiredMessage }]}
+              >
+                <Input.TextArea
+                  size="large"
+                  rows={4}
+                  placeholder={field.help}
+                />
+              </Form.Item>
+            );
           }
 
           return (

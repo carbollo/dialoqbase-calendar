@@ -192,6 +192,43 @@ export async function getChannelsByProvider(
       textColor: "#000",
       connectBtn: null,
     },
+    {
+      name: "Google Calendar",
+      channel: "google_calendar",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg",
+      link: "https://developers.google.com/calendar/api/guides/auth",
+      description:
+        "Allow the bot to schedule appointments on your behalf using a Google Service Account",
+      fields: [
+        {
+          name: "google_calendar_client_email",
+          type: "string",
+          title: "Client Email",
+          inputType: "string",
+          description: "Client email from your Google Cloud Service Account JSON",
+          help: "e.g. my-bot@my-project.iam.gserviceaccount.com",
+          requiredMessage: "Client email is required",
+          value: "",
+          defaultValue: "",
+        },
+        {
+          name: "google_calendar_private_key",
+          type: "string",
+          title: "Private Key",
+          inputType: "textarea",
+          description: "Private key from your Google Cloud Service Account JSON",
+          help: "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n",
+          requiredMessage: "Private key is required",
+          value: "",
+          defaultValue: "",
+        },
+      ],
+      isPaused: false,
+      status: "CONNECT",
+      color: "#fff",
+      textColor: "#000",
+      connectBtn: null,
+    },
     // {
     //   name: "Slack (🧪)",
     //   channel: "slack",
@@ -243,6 +280,29 @@ export async function getChannelsByProvider(
   ];
 
   for (const provider of providerChannel) {
+    if (provider.channel === "google_calendar") {
+      const options = bot.options as any;
+      const creds = options?.google_calendar;
+      
+      if (creds && creds.client_email && creds.private_key) {
+        provider.status = "CONNECTED";
+        provider.color = "rgb(134 239 172)";
+        provider.textColor = "#fff";
+        provider.isPaused = creds.is_paused || false;
+        
+        if (provider.isPaused) {
+          provider.status = "PAUSED";
+          provider.color = "rgb(225 29 72)";
+          provider.textColor = "#fff";
+        }
+        
+        provider.fields[0].value = creds.client_email || "";
+        provider.fields[1].value = creds.private_key || "";
+      }
+      channels.push(provider);
+      continue;
+    }
+
     const integration = await prisma.botIntegration.findFirst({
       where: {
         bot_id: id,
