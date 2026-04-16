@@ -278,20 +278,9 @@ export const createIntergationHandler = async (
       });
 
     case "google_calendar":
-      const options = (isBot.options as any) || {};
-      const newOptions = {
-        ...options,
-        google_calendar: {
-          client_email: request.body.value.google_calendar_client_email,
-          private_key: request.body.value.google_calendar_private_key,
-          is_paused: options.google_calendar?.is_paused || false,
-        }
-      };
-      await prisma.bot.update({
-        where: { id: isBot.id },
-        data: { options: newOptions }
+      return reply.status(400).send({
+        message: "Google Calendar integration must be configured via OAuth",
       });
-      return reply.status(200).send({ message: "Integration created" });
 
     default:
       return reply.status(400).send({
