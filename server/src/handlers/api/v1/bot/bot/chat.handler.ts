@@ -206,9 +206,22 @@ async function handleChatRequest(
     } else {
       return result;
     }
-  } catch (e) {
-    console.error(e);
-    return reply.status(500).send({ message: "Internal Server Error" });
+  } catch (e: any) {
+    console.error("Chat API Error:", e);
+    if (isStreaming) {
+      const errorMessage = e.message || "Internal Server Error";
+      reply.sse({
+        id: "",
+        event: "chunk",
+        data: JSON.stringify({
+          bot: { text: `Error: ${errorMessage}`, sourceDocuments: [] },
+          history: [],
+        }),
+      });
+      await nextTick();
+      return reply.raw.end();
+    }
+    return reply.status(500).send({ message: e.message || "Internal Server Error" });
   }
 }
 
