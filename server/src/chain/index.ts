@@ -166,8 +166,14 @@ export const createChain = ({
 
   if (tools && tools.length > 0) {
     // Agent approach if tools are provided
+    let agent_response_template = response_template.replace(/{question}/g, "{input}");
+    agent_response_template += `\n\nIMPORTANT: You have access to a tool to schedule appointments in Google Calendar. 
+If the user asks to schedule an appointment, you MUST ask them for the required information (date, time, and any other details) BEFORE using the tool. 
+DO NOT guess or make up the date, time, or name. 
+ONLY confirm the appointment IF the tool returns a success message.`;
+
     const prompt = ChatPromptTemplate.fromMessages([
-      ["system", response_template + "\n\nContext:\n{context}"],
+      ["system", agent_response_template + "\n\nContext:\n{context}"],
       new MessagesPlaceholder("chat_history"),
       ["human", "{input}"],
       new MessagesPlaceholder("agent_scratchpad"),
@@ -197,7 +203,6 @@ export const createChain = ({
         });
         const result = await agentExecutor.invoke({
           input: input.question,
-          question: input.question,
           chat_history: input.chat_history,
           context: input.context,
         });
