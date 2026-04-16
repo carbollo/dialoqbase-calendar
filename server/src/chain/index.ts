@@ -170,12 +170,14 @@ export const createChain = ({
     agent_response_template += `\n\nIMPORTANTE: Tienes acceso a una herramienta para agendar citas en Google Calendar.
 Si el usuario pide una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes datos ANTES de usar la herramienta:
 1. Nombre y apellidos
-2. Día y hora de la cita
-3. Número de teléfono
+2. Día de la cita
+3. Hora de la cita
+4. Número de teléfono
 
+Para tu información, la fecha de hoy es {date} y la hora actual es {time}. Si el usuario dice "mañana", calcula la fecha basándote en la fecha de hoy.
 NO preguntes por ningún otro dato (ni email, ni motivo, etc.).
-NO te inventes los datos. Si falta alguno de estos 3 datos, vuelve a preguntarle al usuario.
-Una vez tengas los 3 datos, usa la herramienta para crear el evento.
+NO te inventes los datos. Si falta alguno de estos datos, vuelve a preguntarle al usuario.
+Una vez tengas los datos, usa la herramienta para crear el evento.
 SOLO confirma la cita si la herramienta te devuelve un mensaje de éxito.`;
 
     const prompt = ChatPromptTemplate.fromMessages([
