@@ -68,27 +68,37 @@ export const cancelGoogleCalendarTool = (credentials: { refresh_token: string })
 
   return new DynamicStructuredTool({
     name: "cancel_appointment",
-    description: "Cancels an appointment or event in Google Calendar. Provide the customer's phone number or name to find and cancel their appointment.",
+    description: "Cancels an appointment or event in Google Calendar. Provide the customer's name, phone number, and the date of the appointment.",
     schema: z.object({
-      searchQuery: z.string().describe("El número de teléfono o nombre del cliente para buscar la cita / Phone number or name of the customer to search for the appointment"),
+      customerName: z.string().describe("Nombre y apellidos del cliente / First and last name of the customer"),
+      phoneNumber: z.string().describe("Número de teléfono del cliente / Phone number of the customer"),
+      date: z.string().describe("Fecha de la cita en formato YYYY-MM-DD / Date of the appointment in YYYY-MM-DD format"),
     }) as any,
-    func: async ({ searchQuery }) => {
+    func: async ({ customerName, phoneNumber, date }) => {
       try {
         const now = new Date();
         const res = await calendar.events.list({
           calendarId: "primary",
           timeMin: now.toISOString(),
-          q: searchQuery,
+          q: phoneNumber, // Buscamos por teléfono ya que es lo más único
           singleEvents: true,
           orderBy: "startTime",
         });
 
         const events = res.data.items;
         if (!events || events.length === 0) {
-          return `No se encontró ninguna cita futura para: ${searchQuery}`;
+          return `No se encontró ninguna cita futura para el teléfono: ${phoneNumber}`;
         }
 
-        const eventToCancel = events[0];
+        // Filtramos para asegurarnos de que coincida con la fecha indicada
+        const eventToCancel = events.find(e => 
+          (e.start?.dateTime && e.start.dateTime.startsWith(date)) || 
+          (e.start?.date && e.start.date.startsWith(date))
+        );
+
+        if (!eventToCancel) {
+          return `No se encontró ninguna cita el día ${date} para el cliente con teléfono ${phoneNumber}`;
+        }
         
         await calendar.events.delete({
           calendarId: "primary",
@@ -96,7 +106,7 @@ export const cancelGoogleCalendarTool = (credentials: { refresh_token: string })
           sendUpdates: "all",
         });
 
-        return `Cita cancelada con éxito: ${eventToCancel.summary}`;
+        return `Cita cancelada con éxito: ${eventToCancel.summary} el día ${date}`;
       } catch (error: any) {
         return `Failed to cancel appointment: ${error.message}`;
       }

@@ -175,7 +175,10 @@ Para AGENDAR una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes datos A
 3. Hora de la cita
 4. Número de teléfono
 
-Para CANCELAR una cita, DEBES pedirle el número de teléfono o el nombre para poder buscarla y cancelarla.
+Para CANCELAR una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes datos ANTES de usar la herramienta:
+1. Nombre y apellidos
+2. Número de teléfono
+3. Fecha de la cita a cancelar
 
 Para tu información, la fecha de hoy es ${new Date().toLocaleDateString("es-ES", { timeZone: "Europe/Madrid" })} y la hora actual es ${new Date().toLocaleTimeString("es-ES", { timeZone: "Europe/Madrid" })} en España (Europe/Madrid). Si el usuario dice "mañana", calcula la fecha basándote en la fecha de hoy.
 NO preguntes por ningún otro dato (ni email, ni motivo, etc.).
