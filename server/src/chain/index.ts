@@ -197,6 +197,7 @@ export const createChain = ({
         });
         const result = await agentExecutor.invoke({
           input: input.question,
+          question: input.question,
           chat_history: input.chat_history,
           context: input.context,
         });
