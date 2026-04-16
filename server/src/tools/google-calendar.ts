@@ -113,3 +113,77 @@ export const cancelGoogleCalendarTool = (credentials: { refresh_token: string })
     },
   });
 };
+
+export const rescheduleGoogleCalendarTool = (credentials: { refresh_token: string }) => {
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
+
+  oauth2Client.setCredentials({
+    refresh_token: credentials.refresh_token,
+  });
+
+  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+  return new DynamicStructuredTool({
+    name: "reschedule_appointment",
+    description: "Reschedules an existing appointment in Google Calendar. Provide the customer's name, phone number, original date, and the new start and end times.",
+    schema: z.object({
+      customerName: z.string().describe("Nombre y apellidos del cliente / First and last name of the customer"),
+      phoneNumber: z.string().describe("Número de teléfono del cliente / Phone number of the customer"),
+      oldDate: z.string().describe("Fecha original de la cita en formato YYYY-MM-DD / Original date of the appointment in YYYY-MM-DD format"),
+      newStartTime: z.string().describe("New start time of the event in ISO 8601 format WITHOUT timezone (e.g., 2026-04-16T10:00:00)"),
+      newEndTime: z.string().describe("New end time of the event in ISO 8601 format WITHOUT timezone (e.g., 2026-04-16T11:00:00)"),
+    }) as any,
+    func: async ({ customerName, phoneNumber, oldDate, newStartTime, newEndTime }) => {
+      try {
+        const now = new Date();
+        const res = await calendar.events.list({
+          calendarId: "primary",
+          timeMin: now.toISOString(),
+          q: phoneNumber,
+          singleEvents: true,
+          orderBy: "startTime",
+        });
+
+        const events = res.data.items;
+        if (!events || events.length === 0) {
+          return `No se encontró ninguna cita futura para el teléfono: ${phoneNumber}`;
+        }
+
+        const eventToReschedule = events.find(e => 
+          (e.start?.dateTime && e.start.dateTime.startsWith(oldDate)) || 
+          (e.start?.date && e.start.date.startsWith(oldDate))
+        );
+
+        if (!eventToReschedule) {
+          return `No se encontró ninguna cita el día ${oldDate} para el cliente con teléfono ${phoneNumber}`;
+        }
+        
+        eventToReschedule.start = {
+          dateTime: newStartTime,
+          timeZone: "Europe/Madrid",
+        };
+        eventToReschedule.end = {
+          dateTime: newEndTime,
+          timeZone: "Europe/Madrid",
+        };
+        eventToReschedule.summary = `Cita: ${customerName}`;
+        eventToReschedule.description = `Teléfono de contacto: ${phoneNumber}`;
+
+        await calendar.events.update({
+          calendarId: "primary",
+          eventId: eventToReschedule.id!,
+          requestBody: eventToReschedule,
+          sendUpdates: "all",
+        });
+
+        return `Cita reprogramada con éxito para el día ${newStartTime.split('T')[0]} a las ${newStartTime.split('T')[1]}`;
+      } catch (error: any) {
+        return `Failed to reschedule appointment: ${error.message}`;
+      }
+    },
+  });
+};

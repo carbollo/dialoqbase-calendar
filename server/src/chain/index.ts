@@ -167,7 +167,7 @@ export const createChain = ({
   if (tools && tools.length > 0) {
     // Agent approach if tools are provided
     let agent_response_template = response_template.replace(/{question}/g, "{input}");
-    agent_response_template += `\n\nIMPORTANTE: Tienes acceso a herramientas para agendar y cancelar citas en Google Calendar.
+    agent_response_template += `\n\nIMPORTANTE: Tienes acceso a herramientas para agendar, cancelar y reprogramar citas en Google Calendar.
 
 Para AGENDAR una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes datos ANTES de usar la herramienta:
 1. Nombre y apellidos
@@ -179,6 +179,13 @@ Para CANCELAR una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes datos 
 1. Nombre y apellidos
 2. Número de teléfono
 3. Fecha de la cita a cancelar
+
+Para REPROGRAMAR (cambiar) una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes datos ANTES de usar la herramienta:
+1. Nombre y apellidos
+2. Número de teléfono
+3. Fecha de la cita actual (la que quiere cambiar)
+4. Nuevo día para la cita
+5. Nueva hora para la cita
 
 Para tu información, la fecha de hoy es ${new Date().toLocaleDateString("es-ES", { timeZone: "Europe/Madrid" })} y la hora actual es ${new Date().toLocaleTimeString("es-ES", { timeZone: "Europe/Madrid" })} en España (Europe/Madrid). Si el usuario dice "mañana", calcula la fecha basándote en la fecha de hoy.
 NO preguntes por ningún otro dato (ni email, ni motivo, etc.).
