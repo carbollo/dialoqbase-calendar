@@ -3,7 +3,7 @@ import { Switch } from "@headlessui/react";
 import React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../../services/api";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ClipboardIcon } from "@heroicons/react/24/outline";
 // import Switch from antd as AntdSwitch
