@@ -2,6 +2,48 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { google } from "googleapis";
 
+async function checkConflicts(calendar: any, startTime: string, endTime: string) {
+  const dateOnly = startTime.split('T')[0];
+  const dayStart = `${dateOnly}T00:00:00Z`;
+  const dayEnd = `${dateOnly}T23:59:59Z`;
+
+  const dayEvents = await calendar.events.list({
+    calendarId: "primary",
+    timeMin: dayStart,
+    timeMax: dayEnd,
+    singleEvents: true,
+    orderBy: "startTime",
+  });
+
+  const events = dayEvents.data.items || [];
+  
+  const requestedStart = new Date(startTime).getTime();
+  const requestedEnd = new Date(endTime).getTime();
+
+  let hasConflict = false;
+  const busyTimes: string[] = [];
+
+  for (const e of events) {
+    if (e.start?.dateTime && e.end?.dateTime) {
+      const eStart = new Date(e.start.dateTime).getTime();
+      const eEnd = new Date(e.end.dateTime).getTime();
+      
+      const sStr = new Date(eStart).toLocaleTimeString('es-ES', {timeZone: 'Europe/Madrid', hour: '2-digit', minute:'2-digit'});
+      const eStr = new Date(eEnd).toLocaleTimeString('es-ES', {timeZone: 'Europe/Madrid', hour: '2-digit', minute:'2-digit'});
+      busyTimes.push(`[${sStr} - ${eStr}]`);
+
+      if (requestedStart < eEnd && requestedEnd > eStart) {
+        hasConflict = true;
+      }
+    }
+  }
+
+  if (hasConflict) {
+    return `ERROR: La hora solicitada ya está ocupada. NO confirmes la cita. Las siguientes horas están ocupadas este día: ${busyTimes.join(", ")}. Basándote en el horario comercial de tu contexto, sugiere al usuario la hora disponible más cercana ANTES y la más cercana DESPUÉS de la hora que pidió.`;
+  }
+  return null;
+}
+
 export const createGoogleCalendarTool = (credentials: { refresh_token: string }) => {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -21,21 +63,24 @@ export const createGoogleCalendarTool = (credentials: { refresh_token: string })
     schema: z.object({
       customerName: z.string().describe("Nombre y apellidos del cliente / First and last name of the customer"),
       phoneNumber: z.string().describe("Número de teléfono del cliente / Phone number of the customer"),
-      startTime: z.string().describe("Start time of the event in ISO 8601 format WITHOUT timezone (e.g., 2026-04-16T10:00:00)"),
-      endTime: z.string().describe("End time of the event in ISO 8601 format WITHOUT timezone (e.g., 2026-04-16T11:00:00)"),
+      startTime: z.string().describe("Start time of the event in ISO 8601 format WITH timezone offset (e.g., 2026-04-16T10:00:00+02:00)"),
+      endTime: z.string().describe("End time of the event in ISO 8601 format WITH timezone offset (e.g., 2026-04-16T11:00:00+02:00)"),
     }) as any,
     func: async ({ customerName, phoneNumber, startTime, endTime }) => {
       try {
+        const conflictError = await checkConflicts(calendar, startTime, endTime);
+        if (conflictError) {
+          return conflictError;
+        }
+
         const event: any = {
           summary: `Cita: ${customerName}`,
           description: `Teléfono de contacto: ${phoneNumber}`,
           start: {
             dateTime: startTime,
-            timeZone: "Europe/Madrid",
           },
           end: {
             dateTime: endTime,
-            timeZone: "Europe/Madrid",
           },
         };
 
@@ -134,11 +179,16 @@ export const rescheduleGoogleCalendarTool = (credentials: { refresh_token: strin
       customerName: z.string().describe("Nombre y apellidos del cliente / First and last name of the customer"),
       phoneNumber: z.string().describe("Número de teléfono del cliente / Phone number of the customer"),
       oldDate: z.string().describe("Fecha original de la cita en formato YYYY-MM-DD / Original date of the appointment in YYYY-MM-DD format"),
-      newStartTime: z.string().describe("New start time of the event in ISO 8601 format WITHOUT timezone (e.g., 2026-04-16T10:00:00)"),
-      newEndTime: z.string().describe("New end time of the event in ISO 8601 format WITHOUT timezone (e.g., 2026-04-16T11:00:00)"),
+      newStartTime: z.string().describe("New start time of the event in ISO 8601 format WITH timezone offset (e.g., 2026-04-16T10:00:00+02:00)"),
+      newEndTime: z.string().describe("New end time of the event in ISO 8601 format WITH timezone offset (e.g., 2026-04-16T11:00:00+02:00)"),
     }) as any,
     func: async ({ customerName, phoneNumber, oldDate, newStartTime, newEndTime }) => {
       try {
+        const conflictError = await checkConflicts(calendar, newStartTime, newEndTime);
+        if (conflictError) {
+          return conflictError;
+        }
+
         const now = new Date();
         const res = await calendar.events.list({
           calendarId: "primary",
@@ -164,11 +214,9 @@ export const rescheduleGoogleCalendarTool = (credentials: { refresh_token: strin
         
         eventToReschedule.start = {
           dateTime: newStartTime,
-          timeZone: "Europe/Madrid",
         };
         eventToReschedule.end = {
           dateTime: newEndTime,
-          timeZone: "Europe/Madrid",
         };
         eventToReschedule.summary = `Cita: ${customerName}`;
         eventToReschedule.description = `Teléfono de contacto: ${phoneNumber}`;

@@ -196,7 +196,7 @@ IMPORTANTE SOBRE LAS HORAS: Si el usuario te da una hora como "a la 1", "a las 4
 NO preguntes por ningún otro dato (ni email, ni motivo, etc.).
 NO te inventes los datos. Si falta alguno de estos datos, vuelve a preguntarle al usuario.
 Una vez tengas los datos y confirmes que la hora está dentro del horario comercial, usa la herramienta correspondiente.
-Asegúrate de pasar la hora a la herramienta SIN la letra "Z" al final (por ejemplo, 2026-04-17T10:00:00) para que se agende en la zona horaria correcta de Madrid.
+Asegúrate de pasar la hora a la herramienta CON el offset de zona horaria de Madrid (por ejemplo, 2026-04-17T10:00:00+02:00 para horario de verano o +01:00 para invierno).
 SOLO confirma la acción si la herramienta te devuelve un mensaje de éxito.`;
 
     const prompt = ChatPromptTemplate.fromMessages([
