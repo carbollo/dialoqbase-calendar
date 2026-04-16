@@ -21,7 +21,7 @@ export const createGoogleCalendarTool = (credentials: { client_email: string; pr
       startTime: z.string().describe("Start time of the event in ISO 8601 format (e.g., 2026-04-16T10:00:00Z)"),
       endTime: z.string().describe("End time of the event in ISO 8601 format (e.g., 2026-04-16T11:00:00Z)"),
       attendeeEmail: z.string().optional().describe("Optional email address of the person to invite"),
-    }),
+    }) as any,
     func: async ({ summary, description, startTime, endTime, attendeeEmail }) => {
       try {
         const event: any = {
