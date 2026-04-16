@@ -283,7 +283,9 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
               type="button"
               onClick={async () => {
                 try {
-                  const response = await api.get(data.connectBtn!.link);
+                  // Remove /api/v1 prefix since the axios instance already adds it
+                  const apiPath = data.connectBtn!.link.replace('/api/v1', '');
+                  const response = await api.get(apiPath);
                   if (response.data && response.data.url) {
                     window.location.href = response.data.url;
                   }
