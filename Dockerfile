@@ -1,4 +1,4 @@
-FROM node:18-slim AS base
+FROM node:20-slim AS base
 WORKDIR /app
 RUN apt update && apt install -y \
     g++ make python3 wget gnupg dirmngr unzip
@@ -18,7 +18,7 @@ COPY . .
 RUN pnpm install && pnpm build
 
 # Final stage
-FROM node:18-slim
+FROM node:20-slim
 WORKDIR /app
 
 # Set environment variables
@@ -55,6 +55,7 @@ RUN apt update && apt install -y --no-install-recommends \
 COPY --from=server /app/dist/ . 
 COPY --from=server /app/prisma/ ./prisma 
 COPY --from=server /app/package.json . 
+COPY --from=server /app/yarn.lock . 
 COPY --from=build /app/app/ui/dist/ ./public 
 COPY --from=build /app/app/widget/dist/assets/ ./public/assets 
 COPY --from=build /app/app/widget/dist/index.html ./public/bot.html 
