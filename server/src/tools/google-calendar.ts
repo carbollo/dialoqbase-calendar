@@ -17,12 +17,12 @@ export const createGoogleCalendarTool = (credentials: { refresh_token: string })
 
   return new DynamicStructuredTool({
     name: "schedule_appointment",
-    description: "Schedules an appointment or event in Google Calendar. Provide the customer's name, phone number, start time, and end time in ISO 8601 format.",
+    description: "Schedules an appointment or event in Google Calendar. Provide the customer's name, phone number, start time, and end time.",
     schema: z.object({
       customerName: z.string().describe("Nombre y apellidos del cliente / First and last name of the customer"),
       phoneNumber: z.string().describe("Número de teléfono del cliente / Phone number of the customer"),
-      startTime: z.string().describe("Start time of the event in ISO 8601 format (e.g., 2026-04-16T10:00:00Z)"),
-      endTime: z.string().describe("End time of the event in ISO 8601 format (e.g., 2026-04-16T11:00:00Z)"),
+      startTime: z.string().describe("Start time of the event in ISO 8601 format WITHOUT timezone (e.g., 2026-04-16T10:00:00)"),
+      endTime: z.string().describe("End time of the event in ISO 8601 format WITHOUT timezone (e.g., 2026-04-16T11:00:00)"),
     }) as any,
     func: async ({ customerName, phoneNumber, startTime, endTime }) => {
       try {
@@ -31,11 +31,11 @@ export const createGoogleCalendarTool = (credentials: { refresh_token: string })
           description: `Teléfono de contacto: ${phoneNumber}`,
           start: {
             dateTime: startTime,
-            timeZone: "UTC",
+            timeZone: "Europe/Madrid",
           },
           end: {
             dateTime: endTime,
-            timeZone: "UTC",
+            timeZone: "Europe/Madrid",
           },
         };
 

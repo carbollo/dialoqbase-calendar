@@ -174,10 +174,11 @@ Si el usuario pide una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes d
 3. Hora de la cita
 4. Número de teléfono
 
-Para tu información, la fecha de hoy es ${new Date().toLocaleDateString()} y la hora actual es ${new Date().toLocaleTimeString()}. Si el usuario dice "mañana", calcula la fecha basándote en la fecha de hoy.
+Para tu información, la fecha de hoy es ${new Date().toLocaleDateString("es-ES", { timeZone: "Europe/Madrid" })} y la hora actual es ${new Date().toLocaleTimeString("es-ES", { timeZone: "Europe/Madrid" })} en España (Europe/Madrid). Si el usuario dice "mañana", calcula la fecha basándote en la fecha de hoy.
 NO preguntes por ningún otro dato (ni email, ni motivo, etc.).
 NO te inventes los datos. Si falta alguno de estos datos, vuelve a preguntarle al usuario.
 Una vez tengas los datos, usa la herramienta para crear el evento.
+Asegúrate de pasar la hora a la herramienta SIN la letra "Z" al final (por ejemplo, 2026-04-17T10:00:00) para que se agende en la zona horaria correcta de Madrid.
 SOLO confirma la cita si la herramienta te devuelve un mensaje de éxito.`;
 
     const prompt = ChatPromptTemplate.fromMessages([
