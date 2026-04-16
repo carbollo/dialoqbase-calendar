@@ -4,7 +4,7 @@ import { embeddings } from "../../../../../utils/embeddings";
 import { createChain, groupMessagesByConversation } from "../../../../../chain";
 import { getModelInfo } from "../../../../../utils/get-model-info";
 import { nextTick } from "../../../../../utils/nextTick";
-import { createGoogleCalendarTool } from "../../../../../tools/google-calendar";
+import { createGoogleCalendarTool, cancelGoogleCalendarTool } from "../../../../../tools/google-calendar";
 import {
   createChatModel,
   createRetriever,
@@ -95,6 +95,7 @@ export const chatRequestHandler = async (
       const creds = (bot.options as any).google_calendar;
       if (creds.refresh_token && !creds.is_paused) {
         tools.push(createGoogleCalendarTool(creds));
+        tools.push(cancelGoogleCalendarTool(creds));
       }
     }
 
@@ -245,6 +246,7 @@ export const chatRequestStreamHandler = async (
       const creds = (bot.options as any).google_calendar;
       if (creds.refresh_token && !creds.is_paused) {
         tools.push(createGoogleCalendarTool(creds));
+        tools.push(cancelGoogleCalendarTool(creds));
       }
     }
 

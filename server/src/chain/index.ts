@@ -167,19 +167,22 @@ export const createChain = ({
   if (tools && tools.length > 0) {
     // Agent approach if tools are provided
     let agent_response_template = response_template.replace(/{question}/g, "{input}");
-    agent_response_template += `\n\nIMPORTANTE: Tienes acceso a una herramienta para agendar citas en Google Calendar.
-Si el usuario pide una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes datos ANTES de usar la herramienta:
+    agent_response_template += `\n\nIMPORTANTE: Tienes acceso a herramientas para agendar y cancelar citas en Google Calendar.
+
+Para AGENDAR una cita, DEBES preguntarle OBLIGATORIAMENTE los siguientes datos ANTES de usar la herramienta:
 1. Nombre y apellidos
 2. Día de la cita
 3. Hora de la cita
 4. Número de teléfono
 
+Para CANCELAR una cita, DEBES pedirle el número de teléfono o el nombre para poder buscarla y cancelarla.
+
 Para tu información, la fecha de hoy es ${new Date().toLocaleDateString("es-ES", { timeZone: "Europe/Madrid" })} y la hora actual es ${new Date().toLocaleTimeString("es-ES", { timeZone: "Europe/Madrid" })} en España (Europe/Madrid). Si el usuario dice "mañana", calcula la fecha basándote en la fecha de hoy.
 NO preguntes por ningún otro dato (ni email, ni motivo, etc.).
 NO te inventes los datos. Si falta alguno de estos datos, vuelve a preguntarle al usuario.
-Una vez tengas los datos, usa la herramienta para crear el evento.
+Una vez tengas los datos, usa la herramienta correspondiente.
 Asegúrate de pasar la hora a la herramienta SIN la letra "Z" al final (por ejemplo, 2026-04-17T10:00:00) para que se agende en la zona horaria correcta de Madrid.
-SOLO confirma la cita si la herramienta te devuelve un mensaje de éxito.`;
+SOLO confirma la acción si la herramienta te devuelve un mensaje de éxito.`;
 
     const prompt = ChatPromptTemplate.fromMessages([
       ["system", agent_response_template + "\n\nContext:\n{context}"],

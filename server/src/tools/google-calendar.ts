@@ -52,3 +52,54 @@ export const createGoogleCalendarTool = (credentials: { refresh_token: string })
     },
   });
 };
+
+export const cancelGoogleCalendarTool = (credentials: { refresh_token: string }) => {
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
+
+  oauth2Client.setCredentials({
+    refresh_token: credentials.refresh_token,
+  });
+
+  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+  return new DynamicStructuredTool({
+    name: "cancel_appointment",
+    description: "Cancels an appointment or event in Google Calendar. Provide the customer's phone number or name to find and cancel their appointment.",
+    schema: z.object({
+      searchQuery: z.string().describe("El número de teléfono o nombre del cliente para buscar la cita / Phone number or name of the customer to search for the appointment"),
+    }) as any,
+    func: async ({ searchQuery }) => {
+      try {
+        const now = new Date();
+        const res = await calendar.events.list({
+          calendarId: "primary",
+          timeMin: now.toISOString(),
+          q: searchQuery,
+          singleEvents: true,
+          orderBy: "startTime",
+        });
+
+        const events = res.data.items;
+        if (!events || events.length === 0) {
+          return `No se encontró ninguna cita futura para: ${searchQuery}`;
+        }
+
+        const eventToCancel = events[0];
+        
+        await calendar.events.delete({
+          calendarId: "primary",
+          eventId: eventToCancel.id!,
+          sendUpdates: "all",
+        });
+
+        return `Cita cancelada con éxito: ${eventToCancel.summary}`;
+      } catch (error: any) {
+        return `Failed to cancel appointment: ${error.message}`;
+      }
+    },
+  });
+};

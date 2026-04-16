@@ -9,7 +9,7 @@ import { chatModelProvider } from "../../../../../utils/models";
 import { createChain, groupMessagesByConversation } from "../../../../../chain";
 import { getModelInfo } from "../../../../../utils/get-model-info";
 import { nextTick } from "../../../../../utils/nextTick";
-import { createGoogleCalendarTool } from "../../../../../tools/google-calendar";
+import { createGoogleCalendarTool, cancelGoogleCalendarTool } from "../../../../../tools/google-calendar";
 
 async function getBotAndEmbedding(request: FastifyRequest<ChatAPIRequest>) {
   const bot_id = request.params.id;
@@ -138,6 +138,7 @@ async function handleChatRequest(
       const creds = (bot.options as any).google_calendar;
       if (creds.refresh_token && !creds.is_paused) {
         tools.push(createGoogleCalendarTool(creds));
+        tools.push(cancelGoogleCalendarTool(creds));
       }
     }
 
