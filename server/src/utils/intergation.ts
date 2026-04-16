@@ -33,10 +33,7 @@ export const geProviderRequiredFields = (channel: string) => {
         "slack_app_token"
       ];
     case "google_calendar":
-      return [
-        "google_calendar_client_email",
-        "google_calendar_private_key"
-      ];
+      return [];
     default:
       return null;
   }

@@ -2,15 +2,18 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { google } from "googleapis";
 
-export const createGoogleCalendarTool = (credentials: { client_email: string; private_key: string }) => {
-  const scopes = ["https://www.googleapis.com/auth/calendar.events"];
-  const jwtClient = new google.auth.JWT({
-    email: credentials.client_email,
-    key: credentials.private_key.replace(/\\n/g, "\n"),
-    scopes,
+export const createGoogleCalendarTool = (credentials: { refresh_token: string }) => {
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
+
+  oauth2Client.setCredentials({
+    refresh_token: credentials.refresh_token,
   });
 
-  const calendar = google.calendar({ version: "v3", auth: jwtClient });
+  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
   return new DynamicStructuredTool({
     name: "schedule_appointment",

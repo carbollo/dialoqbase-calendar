@@ -198,36 +198,16 @@ export async function getChannelsByProvider(
       logo: "https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg",
       link: "https://developers.google.com/calendar/api/guides/auth",
       description:
-        "Allow the bot to schedule appointments on your behalf using a Google Service Account",
-      fields: [
-        {
-          name: "google_calendar_client_email",
-          type: "string",
-          title: "Client Email",
-          inputType: "string",
-          description: "Client email from your Google Cloud Service Account JSON",
-          help: "e.g. my-bot@my-project.iam.gserviceaccount.com",
-          requiredMessage: "Client email is required",
-          value: "",
-          defaultValue: "",
-        },
-        {
-          name: "google_calendar_private_key",
-          type: "string",
-          title: "Private Key",
-          inputType: "textarea",
-          description: "Private key from your Google Cloud Service Account JSON",
-          help: "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n",
-          requiredMessage: "Private key is required",
-          value: "",
-          defaultValue: "",
-        },
-      ],
+        "Allow the bot to schedule appointments on your behalf using your Google Account",
+      fields: [],
       isPaused: false,
       status: "CONNECT",
       color: "#fff",
       textColor: "#000",
-      connectBtn: null,
+      connectBtn: {
+        text: "Connect to Google Calendar",
+        link: `/api/v1/bot/${id}/google_calendar/auth`,
+      },
     },
     // {
     //   name: "Slack (🧪)",
@@ -284,7 +264,7 @@ export async function getChannelsByProvider(
       const options = bot.options as any;
       const creds = options?.google_calendar;
       
-      if (creds && creds.client_email && creds.private_key) {
+      if (creds && creds.refresh_token) {
         provider.status = "CONNECTED";
         provider.color = "rgb(134 239 172)";
         provider.textColor = "#fff";
@@ -295,9 +275,16 @@ export async function getChannelsByProvider(
           provider.color = "rgb(225 29 72)";
           provider.textColor = "#fff";
         }
-        
-        provider.fields[0].value = creds.client_email || "";
-        provider.fields[1].value = creds.private_key || "";
+
+        provider.connectBtn = {
+          text: "Reconnect Google Calendar",
+          link: `/api/v1/bot/integration/${id}/google_calendar/auth`,
+        };
+      } else {
+        provider.connectBtn = {
+          text: "Connect to Google Calendar",
+          link: `/api/v1/bot/integration/${id}/google_calendar/auth`,
+        };
       }
       channels.push(provider);
       continue;

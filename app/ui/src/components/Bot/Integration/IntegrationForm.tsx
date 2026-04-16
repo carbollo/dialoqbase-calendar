@@ -225,17 +225,19 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
           );
         })}
 
-        <Form.Item>
-          <button
-            type="submit"
-            disabled={isUpdating || isToggling}
-            className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            {isUpdating ? "Saving..." : "Save"}
-          </button>
-        </Form.Item>
+        {data.fields.length > 0 && (
+          <Form.Item>
+            <button
+              type="submit"
+              disabled={isUpdating || isToggling}
+              className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              {isUpdating ? "Saving..." : "Save"}
+            </button>
+          </Form.Item>
+        )}
       </Form>
-      <Divider />
+      {data.fields.length > 0 && <Divider />}
       <div
         className={
           data?.connectBtn ? "flex items-center justify-between space-x-3" : ""
@@ -276,14 +278,14 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
           </Switch>
         </Switch.Group>
         {data.connectBtn && (
-          <Link to={data.connectBtn.link} target="_blank">
+          <a href={data.connectBtn.link}>
             <button
               type="button"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
             >
               {data.connectBtn.text}
             </button>
-          </Link>
+          </a>
         )}
       </div>
     </>

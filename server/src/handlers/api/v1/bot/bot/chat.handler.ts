@@ -136,7 +136,7 @@ async function handleChatRequest(
     const tools = [];
     if (bot.options && (bot.options as any).google_calendar) {
       const creds = (bot.options as any).google_calendar;
-      if (creds.client_email && creds.private_key && !creds.is_paused) {
+      if (creds.refresh_token && !creds.is_paused) {
         tools.push(createGoogleCalendarTool(creds));
       }
     }

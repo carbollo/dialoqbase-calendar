@@ -22,6 +22,10 @@ import {
   regenerateAPIKeyHandler,
 } from "../../../../../handlers/api/v1/bot/integration/api.handler";
 import { getChannelsByProvider } from "../../../../../handlers/api/v1/bot/integration/get.handler";
+import {
+  googleCalendarAuthHandler,
+  googleCalendarCallbackHandler,
+} from "../../../../../handlers/api/v1/bot/integration/google.handler";
 
 const root: FastifyPluginAsync = async (fastify, _): Promise<void> => {
   // create integration for channel
@@ -111,6 +115,24 @@ const root: FastifyPluginAsync = async (fastify, _): Promise<void> => {
       onRequest: [fastify.authenticate],
     },
     regenerateAPIKeyHandler
+  );
+
+  // google calendar oauth
+  fastify.get(
+    "/:id/google_calendar/auth",
+    {
+      schema: { hide: true },
+      onRequest: [fastify.authenticate],
+    },
+    googleCalendarAuthHandler
+  );
+
+  fastify.get(
+    "/google_calendar/callback",
+    {
+      schema: { hide: true },
+    },
+    googleCalendarCallbackHandler
   );
 };
 
