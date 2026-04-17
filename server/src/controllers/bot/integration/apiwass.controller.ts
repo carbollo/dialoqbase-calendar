@@ -23,6 +23,9 @@ export const chatRequestHandler = async (
   const body = request.body;
   const anyBody = body as any;
 
+  console.log("--- INCOMING APIWASS WEBHOOK ---");
+  console.log(JSON.stringify(anyBody, null, 2));
+
   let bot;
 
   if (botId) {
@@ -43,8 +46,13 @@ export const chatRequestHandler = async (
     const bots = await prisma.bot.findMany();
     bot = bots.find((b) => {
       const opts = b.options as any;
-      return opts?.apiwass?.session_id === sessionId;
+      const dbSessionId = opts?.apiwass?.session_id?.trim();
+      return dbSessionId && dbSessionId === sessionId?.trim();
     });
+
+    if (!bot) {
+      console.log(`ApiWass Global Webhook: No bot found for sessionId '${sessionId}'`);
+    }
   }
 
   if (!bot) {
@@ -69,10 +77,20 @@ export const chatRequestHandler = async (
   let sender = "";
   let messageText = "";
 
-  if (anyBody?.event === "messages.received" && anyBody?.from && anyBody?.text) {
-    // ApiWass official format
-    sender = anyBody.from;
-    messageText = anyBody.text;
+  if (anyBody?.event) {
+    // If it's an ApiWass event, we ONLY want to process 'messages.received'
+    if (anyBody.event !== "messages.received") {
+      console.log(`ApiWass Webhook: Ignoring event '${anyBody.event}'`);
+      return reply.status(200).send({ message: "OK" });
+    }
+    
+    if (anyBody.from && anyBody.text) {
+      sender = anyBody.from;
+      messageText = anyBody.text;
+    } else {
+      console.log("ApiWass Webhook: Missing from/text in messages.received");
+      return reply.status(200).send({ message: "OK" });
+    }
   } else if (anyBody?.payload?.from && anyBody?.payload?.body) {
     sender = anyBody.payload.from;
     messageText = anyBody.payload.body;
@@ -101,7 +119,10 @@ export const chatRequestHandler = async (
     return reply.status(200).send({ message: "OK" });
   }
 
-  // Process message with Dialoqbase bot
+  // Acknowledge webhook immediately to prevent retries from ApiWass
+  reply.status(200).send({ message: "OK" });
+
+  // Process message with Dialoqbase bot in the background
   try {
     const chat_history = await prisma.botWhatsappHistory.findMany({
       where: {
@@ -229,9 +250,7 @@ export const chatRequestHandler = async (
        console.error("ApiWass send error:", await sendResponse.text());
     }
 
-    return reply.status(200).send({ message: "OK" });
   } catch (error) {
     console.error("ApiWass processing error:", error);
-    return reply.status(500).send({ message: "Internal Server Error" });
   }
 };
