@@ -149,6 +149,10 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
       >
         {data.fields.map((field, index) => {
           if (field.type === "webhook") {
+            const webhookUrl = data.channel === "apiwass"
+              ? `${hostUrl}/api/v1/bot/integration/apiwass/webhook`
+              : `${hostUrl}/api/v1/bot/integration/${params.id}/${data.channel}`;
+
             return (
               <Form.Item key={index} label={field.title} name={field.name}>
                 <div className="flex">
@@ -156,7 +160,7 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
                     <Input
                       size="large"
                       readOnly
-                      value={`${hostUrl}/api/v1/bot/integration/${params.id}/${data.channel}`}
+                      value={webhookUrl}
                       type={field.inputType}
                       placeholder={field.help}
                     />
@@ -165,9 +169,7 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
                     <button
                       type="button"
                       onClick={async () => {
-                        await clipbardCopy(
-                          `${hostUrl}/api/v1/bot/integration/${params.id}/${data.channel}`
-                        );
+                        await clipbardCopy(webhookUrl);
                         notification.success({
                           message: "Copied!",
                           placement: "bottomRight",

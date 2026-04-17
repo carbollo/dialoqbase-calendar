@@ -4,7 +4,7 @@ import { chatRequestHandler } from "../../../../../controllers/bot/integration/a
 export const apiwassIntergationHandlerPost = async (
   request: FastifyRequest<{
     Params: {
-      id: string;
+      id?: string;
     };
     Body: any;
   }>,

@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 export const chatRequestHandler = async (
   request: FastifyRequest<{
     Params: {
-      id: string;
+      id?: string;
     };
     Body: any;
   }>,
@@ -21,13 +21,31 @@ export const chatRequestHandler = async (
 ) => {
   const botId = request.params.id;
   const body = request.body;
+  const anyBody = body as any;
 
-  // Verify bot exists and apiwass integration is configured
-  const bot = await prisma.bot.findUnique({
-    where: {
-      publicId: botId,
-    },
-  });
+  let bot;
+
+  if (botId) {
+    // Verify bot exists by ID
+    bot = await prisma.bot.findUnique({
+      where: {
+        publicId: botId,
+      },
+    });
+  } else {
+    // Global webhook mode: find bot by sessionId
+    const sessionId = anyBody?.sessionId;
+    if (!sessionId) {
+      console.log("ApiWass Global Webhook: Missing sessionId in payload");
+      return reply.status(200).send({ message: "OK" });
+    }
+    
+    const bots = await prisma.bot.findMany();
+    bot = bots.find((b) => {
+      const opts = b.options as any;
+      return opts?.apiwass?.session_id === sessionId;
+    });
+  }
 
   if (!bot) {
     return reply.status(404).send({ message: "Bot not found" });
@@ -50,8 +68,6 @@ export const chatRequestHandler = async (
   
   let sender = "";
   let messageText = "";
-
-  const anyBody = body as any;
 
   if (anyBody?.event === "messages.received" && anyBody?.from && anyBody?.text) {
     // ApiWass official format

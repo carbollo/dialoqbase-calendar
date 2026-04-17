@@ -121,6 +121,17 @@ const root: FastifyPluginAsync = async (fastify, _): Promise<void> => {
     regenerateAPIKeyHandler
   );
 
+  // apiwass global webhook
+  fastify.post(
+    "/apiwass/webhook",
+    {
+      schema: {
+        hide: true,
+      },
+    },
+    apiwassIntergationHandlerPost
+  );
+
   // apiwass integration webhook
   fastify.post(
     "/:id/apiwass",
