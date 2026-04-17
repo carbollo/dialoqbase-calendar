@@ -122,20 +122,32 @@ export const chatRequestHandler = async (
     return reply.status(200).send({ message: "OK" });
   }
 
-  // Add a fast in-memory deduplication check (5-second cache)
-  // We use the timestamp from the webhook to ensure exact duplicates are caught
-  const messageHash = anyBody?.id || anyBody?.messages?.[0]?.id || `${sender}-${messageText}-${anyBody?.timestamp || ''}`;
+  // Add a fast in-memory deduplication check (60-second cache)
+  // We ignore the timestamp to ensure retries with different timestamps are caught
+  const messageHash = anyBody?.id || anyBody?.messages?.[0]?.id || `${sender}-${messageText.trim()}`;
   
   if (processedMessagesCache.has(messageHash)) {
     console.log(`ApiWass Webhook: Ignoring duplicate message (cache hit for ${messageHash})`);
     return reply.status(200).send({ message: "OK" });
   }
 
-  // Add to cache and set it to expire in 5 seconds
+  // Add to cache and set it to expire in 60 seconds
   processedMessagesCache.add(messageHash);
   setTimeout(() => {
     processedMessagesCache.delete(messageHash);
-  }, 5000);
+  }, 60000);
+
+  // Check DB just in case (e.g. multi-instance deployments or server restarts)
+  const isAlreadyProcessed = await prisma.botWhatsappHistory.findFirst({
+    where: {
+      chat_id: messageHash,
+    },
+  });
+
+  if (isAlreadyProcessed) {
+    console.log(`ApiWass Webhook: Ignoring duplicate message (DB hit for ${messageHash})`);
+    return reply.status(200).send({ message: "OK" });
+  }
 
   // Acknowledge webhook immediately to prevent retries from ApiWass
   reply.status(200).send({ message: "OK" });
