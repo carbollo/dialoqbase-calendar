@@ -153,8 +153,10 @@ export const chatRequestHandler = async (
   reply.status(200).send({ message: "OK" });
 
   // Process message with Dialoqbase bot in the background
-  try {
-    const chat_history = await prisma.botWhatsappHistory.findMany({
+  // We MUST use a self-executing async function so Fastify doesn't block the response
+  (async () => {
+    try {
+      const chat_history = await prisma.botWhatsappHistory.findMany({
       where: {
         from: sender,
         identifier: `${bot.id}-${sender}`,
@@ -280,7 +282,10 @@ export const chatRequestHandler = async (
        console.error("ApiWass send error:", await sendResponse.text());
     }
 
-  } catch (error) {
-    console.error("ApiWass processing error:", error);
-  }
+    } catch (error) {
+      console.error("ApiWass processing error:", error);
+    }
+  })();
+
+  return reply;
 };
