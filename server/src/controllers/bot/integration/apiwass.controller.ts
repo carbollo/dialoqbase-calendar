@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { embeddings } from "../../../utils/embeddings";
 import { DialoqbaseVectorStore } from "../../../utils/store";
 import { chatModelProvider } from "../../../utils/models";
@@ -140,29 +140,41 @@ export const chatRequestHandler = async (
     processedMessagesCache.delete(messageHash);
   }, 60000);
 
-  // Check DB just in case (e.g. multi-instance deployments or server restarts)
-  const isAlreadyProcessed = await prisma.botWhatsappHistory.findFirst({
-    where: {
-      chat_id: messageHash,
-    },
-  });
+  // Check DB and insert atomically using a Serializable transaction
+  // This prevents race conditions across multiple server instances/replicas
+  try {
+    const isNew = await prisma.$transaction(async (tx) => {
+      const existing = await tx.botWhatsappHistory.findFirst({
+        where: { chat_id: messageHash }
+      });
+      
+      if (existing) return false;
+      
+      await tx.botWhatsappHistory.create({
+        data: {
+          identifier: `${bot.id}-${sender}`,
+          chat_id: messageHash, 
+          from: sender,
+          human: messageText,
+          bot: "...", // Placeholder, will be updated later
+          bot_id: bot.id,
+        }
+      });
+      
+      return true;
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable
+    });
 
-  if (isAlreadyProcessed) {
-    console.log(`ApiWass Webhook: Ignoring duplicate message (DB hit for ${messageHash})`);
+    if (!isNew) {
+      console.log(`ApiWass Webhook: Ignoring duplicate message (DB hit for ${messageHash})`);
+      return reply.status(200).send({ message: "OK" });
+    }
+  } catch (e: any) {
+    // If a serialization error occurs (P2034), it means another instance just inserted it
+    console.log(`ApiWass Webhook: Ignoring duplicate message (Transaction conflict for ${messageHash})`);
     return reply.status(200).send({ message: "OK" });
   }
-
-  // CREATE A PENDING RECORD IN THE DB IMMEDIATELY TO PREVENT RACE CONDITIONS ACROSS REPLICAS
-  await prisma.botWhatsappHistory.create({
-    data: {
-      identifier: `${bot.id}-${sender}`,
-      chat_id: messageHash, 
-      from: sender,
-      human: messageText,
-      bot: "...", // Placeholder, will be updated later
-      bot_id: bot.id,
-    },
-  });
 
   // Acknowledge webhook immediately to prevent retries from ApiWass
   reply.status(200).send({ message: "OK" });
