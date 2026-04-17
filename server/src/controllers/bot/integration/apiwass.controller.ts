@@ -140,49 +140,44 @@ export const chatRequestHandler = async (
     processedMessagesCache.delete(messageHash);
   }, 60000);
 
-  // Check DB and insert atomically using a Serializable transaction
-  // This prevents race conditions across multiple server instances/replicas
-  try {
-    const isNew = await prisma.$transaction(async (tx) => {
-      const existing = await tx.botWhatsappHistory.findFirst({
-        where: { chat_id: messageHash }
-      });
-      
-      if (existing) return false;
-      
-      await tx.botWhatsappHistory.create({
-        data: {
-          identifier: `${bot.id}-${sender}`,
-          chat_id: messageHash, 
-          from: sender,
-          human: messageText,
-          bot: "...", // Placeholder, will be updated later
-          bot_id: bot.id,
-        }
-      });
-      
-      return true;
-    }, {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable
-    });
-
-    if (!isNew) {
-      console.log(`ApiWass Webhook: Ignoring duplicate message (DB hit for ${messageHash})`);
-      return reply.status(200).send({ message: "OK" });
-    }
-  } catch (e: any) {
-    // If a serialization error occurs (P2034), it means another instance just inserted it
-    console.log(`ApiWass Webhook: Ignoring duplicate message (Transaction conflict for ${messageHash})`);
-    return reply.status(200).send({ message: "OK" });
-  }
-
   // Acknowledge webhook immediately to prevent retries from ApiWass
+  // We MUST return the reply here to close the connection and stop Fastify from holding it
   reply.status(200).send({ message: "OK" });
 
   // Process message with Dialoqbase bot in the background
   // We use setTimeout to completely detach this from the Fastify request lifecycle
   setTimeout(async () => {
     try {
+      // Check DB and insert atomically using a Serializable transaction
+      // This prevents race conditions across multiple server instances/replicas
+      const isNew = await prisma.$transaction(async (tx) => {
+        const existing = await tx.botWhatsappHistory.findFirst({
+          where: { chat_id: messageHash }
+        });
+        
+        if (existing) return false;
+        
+        await tx.botWhatsappHistory.create({
+          data: {
+            identifier: `${bot.id}-${sender}`,
+            chat_id: messageHash, 
+            from: sender,
+            human: messageText,
+            bot: "...", // Placeholder, will be updated later
+            bot_id: bot.id,
+          }
+        });
+        
+        return true;
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable
+      });
+
+      if (!isNew) {
+        console.log(`ApiWass Webhook: Ignoring duplicate message (DB hit for ${messageHash})`);
+        return;
+      }
+
       console.log(`[ApiWass] Iniciando procesamiento para el mensaje de ${sender}`);
       const chat_history = await prisma.botWhatsappHistory.findMany({
       where: {
