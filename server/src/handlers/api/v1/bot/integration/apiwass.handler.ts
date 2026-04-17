@@ -11,7 +11,7 @@ export const apiwassIntergationHandlerPost = async (
   reply: FastifyReply
 ) => {
   try {
-    await chatRequestHandler(request, reply);
+    return await chatRequestHandler(request, reply);
   } catch (error) {
     console.error("ApiWass Webhook Error:", error);
     return reply.status(500).send({

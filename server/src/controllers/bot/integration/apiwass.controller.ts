@@ -153,9 +153,10 @@ export const chatRequestHandler = async (
   reply.status(200).send({ message: "OK" });
 
   // Process message with Dialoqbase bot in the background
-  // We MUST use a self-executing async function so Fastify doesn't block the response
-  (async () => {
+  // We use setTimeout to completely detach this from the Fastify request lifecycle
+  setTimeout(async () => {
     try {
+      console.log(`[ApiWass] Iniciando procesamiento para el mensaje de ${sender}`);
       const chat_history = await prisma.botWhatsappHistory.findMany({
       where: {
         from: sender,
@@ -266,6 +267,8 @@ export const chatRequestHandler = async (
     // Send reply via ApiWass API
     const apiUrl = `https://apiwass.com/api/sessions/${apiwassCreds.session_id}/messages/text`;
     
+    console.log(`[ApiWass] Enviando respuesta a ${sender}: "${botReply.substring(0, 50)}..."`);
+    
     const sendResponse = await fetch(apiUrl, {
       method: "POST",
       headers: {
@@ -279,13 +282,15 @@ export const chatRequestHandler = async (
     });
 
     if (!sendResponse.ok) {
-       console.error("ApiWass send error:", await sendResponse.text());
+       console.error("[ApiWass] Error al enviar mensaje:", await sendResponse.text());
+    } else {
+       console.log(`[ApiWass] Mensaje enviado correctamente (Status: ${sendResponse.status})`);
     }
 
     } catch (error) {
-      console.error("ApiWass processing error:", error);
+      console.error("[ApiWass] Error procesando el mensaje:", error);
     }
-  })();
+  }, 0);
 
   return reply;
 };
