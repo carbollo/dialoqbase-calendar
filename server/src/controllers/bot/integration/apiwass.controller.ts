@@ -127,12 +127,20 @@ export const chatRequestHandler = async (
   // We also use the message ID from the raw object if available, as it's the most reliable
   const messageHash = anyBody?.raw?.key?.id || anyBody?.id || anyBody?.messages?.[0]?.id || `${sender}-${messageText.trim()}`;
   
+  // SYNCHRONOUS CACHE CHECK FIRST (Crucial for Node.js single-thread event loop)
   if (processedMessagesCache.has(messageHash)) {
     console.log(`ApiWass Webhook: Ignoring duplicate message (cache hit for ${messageHash})`);
     return reply.status(200).send({ message: "OK" });
   }
 
-  // Check DB FIRST before adding to cache or acknowledging, to prevent race conditions
+  // ADD TO CACHE IMMEDIATELY BEFORE ANY AWAIT
+  // This prevents race conditions if two requests arrive at the exact same millisecond
+  processedMessagesCache.add(messageHash);
+  setTimeout(() => {
+    processedMessagesCache.delete(messageHash);
+  }, 60000);
+
+  // Check DB just in case (e.g. multi-instance deployments or server restarts)
   const isAlreadyProcessed = await prisma.botWhatsappHistory.findFirst({
     where: {
       chat_id: messageHash,
@@ -143,12 +151,6 @@ export const chatRequestHandler = async (
     console.log(`ApiWass Webhook: Ignoring duplicate message (DB hit for ${messageHash})`);
     return reply.status(200).send({ message: "OK" });
   }
-
-  // Add to cache and set it to expire in 60 seconds
-  processedMessagesCache.add(messageHash);
-  setTimeout(() => {
-    processedMessagesCache.delete(messageHash);
-  }, 60000);
 
   // CREATE A PENDING RECORD IN THE DB IMMEDIATELY TO PREVENT RACE CONDITIONS ACROSS REPLICAS
   await prisma.botWhatsappHistory.create({
