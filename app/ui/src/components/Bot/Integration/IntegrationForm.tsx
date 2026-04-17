@@ -156,7 +156,7 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
                     <Input
                       size="large"
                       readOnly
-                      value={`${hostUrl}/api/v1/bot/integration/${params.id}/whatsapp`}
+                      value={`${hostUrl}/api/v1/bot/integration/${params.id}/${data.channel}`}
                       type={field.inputType}
                       placeholder={field.help}
                     />
@@ -166,7 +166,7 @@ export const IntegrationForm: React.FC<Props> = ({ onClose, data }) => {
                       type="button"
                       onClick={async () => {
                         await clipbardCopy(
-                          `${hostUrl}/api/v1/bot/integration/${params.id}/whatsapp`
+                          `${hostUrl}/api/v1/bot/integration/${params.id}/${data.channel}`
                         );
                         notification.success({
                           message: "Copied!",

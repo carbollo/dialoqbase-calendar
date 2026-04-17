@@ -27,6 +27,10 @@ import {
   googleCalendarCallbackHandler,
 } from "../../../../../handlers/api/v1/bot/integration/google.handler";
 
+import {
+  apiwassIntergationHandlerPost,
+} from "../../../../../handlers/api/v1/bot/integration/apiwass.handler";
+
 const root: FastifyPluginAsync = async (fastify, _): Promise<void> => {
   // create integration for channel
   fastify.post(
@@ -115,6 +119,17 @@ const root: FastifyPluginAsync = async (fastify, _): Promise<void> => {
       onRequest: [fastify.authenticate],
     },
     regenerateAPIKeyHandler
+  );
+
+  // apiwass integration webhook
+  fastify.post(
+    "/:id/apiwass",
+    {
+      schema: {
+        hide: true,
+      },
+    },
+    apiwassIntergationHandlerPost
   );
 
   // google calendar oauth

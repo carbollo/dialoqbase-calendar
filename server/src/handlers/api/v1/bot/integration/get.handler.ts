@@ -193,6 +193,54 @@ export async function getChannelsByProvider(
       connectBtn: null,
     },
     {
+      name: "ApiWass",
+      channel: "apiwass",
+      logo: "/providers/whatsapp.svg",
+      link: "https://apiwass.com/api-reference",
+      description:
+        "Connect your bot to WhatsApp using ApiWass",
+      fields: [
+        {
+          name: "apiwass_api_key",
+          type: "string",
+          title: "ApiWass API Key",
+          inputType: "password",
+          description: "ApiWass API Key",
+          help: "You can get it from your ApiWass dashboard",
+          requiredMessage: "API Key is required",
+          value: "",
+          defaultValue: "",
+        },
+        {
+          name: "apiwass_session_id",
+          type: "string",
+          title: "Session ID",
+          inputType: "string",
+          description: "ApiWass Session ID",
+          help: "Your ApiWass session ID",
+          requiredMessage: "Session ID is required",
+          value: "",
+          defaultValue: "",
+        },
+        {
+          name: "apiwass_webhook_url",
+          type: "webhook",
+          title: "Webhook URL",
+          inputType: "string",
+          description: "Webhook URL",
+          help: "Copy this URL to your ApiWass webhook settings",
+          requiredMessage: "Webhook URL is required",
+          value: "",
+          defaultValue: "",
+        },
+      ],
+      isPaused: false,
+      status: "CONNECT",
+      color: "#fff",
+      textColor: "#000",
+      connectBtn: null,
+    },
+    {
       name: "Google Calendar",
       channel: "google_calendar",
       logo: "https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg",
@@ -285,6 +333,28 @@ export async function getChannelsByProvider(
           text: "Connect to Google Calendar",
           link: `/api/v1/bot/integration/${id}/google_calendar/auth`,
         };
+      }
+      channels.push(provider);
+      continue;
+    }
+
+    if (provider.channel === "apiwass") {
+      const options = bot.options as any;
+      const creds = options?.apiwass;
+      
+      if (creds && creds.api_key && creds.session_id) {
+        provider.status = "CONNECTED";
+        provider.color = "rgb(134 239 172)";
+        provider.textColor = "#fff";
+        provider.isPaused = creds.is_paused || false;
+        
+        if (provider.isPaused) {
+          provider.status = "PAUSED";
+          provider.color = "rgb(225 29 72)";
+          provider.textColor = "#fff";
+        }
+        provider.fields[0].value = creds.api_key;
+        provider.fields[1].value = creds.session_id;
       }
       channels.push(provider);
       continue;

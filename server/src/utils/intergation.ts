@@ -4,7 +4,8 @@ export const CHANNELS = [
   "whatsapp",
   "slack",
   "website",
-  "google_calendar"
+  "google_calendar",
+  "apiwass"
 ];
 
 export const geProviderRequiredFields = (channel: string) => {
@@ -34,6 +35,11 @@ export const geProviderRequiredFields = (channel: string) => {
       ];
     case "google_calendar":
       return [];
+    case "apiwass":
+      return [
+        "apiwass_api_key",
+        "apiwass_session_id"
+      ];
     default:
       return null;
   }

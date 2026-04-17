@@ -277,6 +277,23 @@ export const createIntergationHandler = async (
         message: "Integration created",
       });
 
+    case "apiwass":
+      const options = (isBot.options as any) || {};
+      options.apiwass = {
+        api_key: request.body.value.apiwass_api_key,
+        session_id: request.body.value.apiwass_session_id,
+        is_paused: false,
+      };
+      
+      await prisma.bot.update({
+        where: { id: isBot.id },
+        data: { options }
+      });
+      
+      return reply.status(200).send({
+        message: "Integration created",
+      });
+
     case "google_calendar":
       return reply.status(400).send({
         message: "Google Calendar integration must be configured via OAuth",
@@ -309,15 +326,16 @@ export const pauseOrResumeIntergationHandler = async (
     });
   }
 
-  if (request.body.provider === "google_calendar") {
+  if (request.body.provider === "google_calendar" || request.body.provider === "apiwass") {
     const options = (isBot.options as any) || {};
-    if (!options.google_calendar) {
+    const provider = request.body.provider;
+    if (!options[provider]) {
       return reply.status(404).send({
-        message: "Google Calendar integration not found",
+        message: `${provider} integration not found`,
       });
     }
     
-    options.google_calendar.is_paused = !options.google_calendar.is_paused;
+    options[provider].is_paused = !options[provider].is_paused;
     
     await prismas.bot.update({
       where: { id: isBot.id },
