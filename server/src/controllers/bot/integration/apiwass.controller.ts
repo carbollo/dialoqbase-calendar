@@ -10,6 +10,9 @@ import { getModelInfo } from "../../../utils/get-model-info";
 
 const prisma = new PrismaClient();
 
+// In-memory cache to prevent duplicate webhook processing (5 seconds TTL)
+const processedMessagesCache = new Set<string>();
+
 export const chatRequestHandler = async (
   request: FastifyRequest<{
     Params: {
@@ -119,21 +122,20 @@ export const chatRequestHandler = async (
     return reply.status(200).send({ message: "OK" });
   }
 
-  // Add a simple deduplication check using a cache
-  // We will store the message ID if available, or a hash of sender+text+timestamp
-  const messageId = anyBody?.id || anyBody?.messages?.[0]?.id || `${sender}-${messageText}-${Date.now()}`;
+  // Add a fast in-memory deduplication check (5-second cache)
+  // We use the timestamp from the webhook to ensure exact duplicates are caught
+  const messageHash = anyBody?.id || anyBody?.messages?.[0]?.id || `${sender}-${messageText}-${anyBody?.timestamp || ''}`;
   
-  // Check if we already processed this message recently
-  const isAlreadyProcessed = await prisma.botWhatsappHistory.findFirst({
-    where: {
-      chat_id: messageId,
-    },
-  });
-
-  if (isAlreadyProcessed) {
-    console.log(`ApiWass Webhook: Ignoring duplicate message ${messageId}`);
+  if (processedMessagesCache.has(messageHash)) {
+    console.log(`ApiWass Webhook: Ignoring duplicate message (cache hit for ${messageHash})`);
     return reply.status(200).send({ message: "OK" });
   }
+
+  // Add to cache and set it to expire in 5 seconds
+  processedMessagesCache.add(messageHash);
+  setTimeout(() => {
+    processedMessagesCache.delete(messageHash);
+  }, 5000);
 
   // Acknowledge webhook immediately to prevent retries from ApiWass
   reply.status(200).send({ message: "OK" });
@@ -239,7 +241,7 @@ export const chatRequestHandler = async (
     await prisma.botWhatsappHistory.create({
       data: {
         identifier: `${bot.id}-${sender}`,
-        chat_id: messageId, // Use the actual message ID to prevent duplicates
+        chat_id: messageHash, // Use the hash as the chat_id
         from: sender,
         human: messageText,
         bot: botReply,
