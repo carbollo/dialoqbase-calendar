@@ -53,7 +53,11 @@ export const chatRequestHandler = async (
 
   const anyBody = body as any;
 
-  if (anyBody?.payload?.from && anyBody?.payload?.body) {
+  if (anyBody?.event === "messages.received" && anyBody?.from && anyBody?.text) {
+    // ApiWass official format
+    sender = anyBody.from;
+    messageText = anyBody.text;
+  } else if (anyBody?.payload?.from && anyBody?.payload?.body) {
     sender = anyBody.payload.from;
     messageText = anyBody.payload.body;
   } else if (anyBody?.chatId && anyBody?.message) {
@@ -191,19 +195,16 @@ export const chatRequestHandler = async (
     });
 
     // Send reply via ApiWass API
-    const apiUrl = `https://apiwass.com/v1/messages`;
+    const apiUrl = `https://apiwass.com/api/sessions/${apiwassCreds.session_id}/messages/text`;
     
     const sendResponse = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Token": apiwassCreds.api_key, // Assuming Wassenger-like auth
-        "Authorization": `Bearer ${apiwassCreds.api_key}` // Fallback standard auth
+        "x-api-key": apiwassCreds.api_key
       },
       body: JSON.stringify({
-        session: apiwassCreds.session_id,
-        phone: sender.replace("@c.us", ""), // Typically APIs want just the number
-        chatId: sender,
+        phone: sender.replace("@c.us", "").replace("@s.whatsapp.net", ""),
         message: botReply,
       }),
     });
