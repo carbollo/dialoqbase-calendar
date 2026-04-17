@@ -119,6 +119,22 @@ export const chatRequestHandler = async (
     return reply.status(200).send({ message: "OK" });
   }
 
+  // Add a simple deduplication check using a cache
+  // We will store the message ID if available, or a hash of sender+text+timestamp
+  const messageId = anyBody?.id || anyBody?.messages?.[0]?.id || `${sender}-${messageText}-${Date.now()}`;
+  
+  // Check if we already processed this message recently
+  const isAlreadyProcessed = await prisma.botWhatsappHistory.findFirst({
+    where: {
+      chat_id: messageId,
+    },
+  });
+
+  if (isAlreadyProcessed) {
+    console.log(`ApiWass Webhook: Ignoring duplicate message ${messageId}`);
+    return reply.status(200).send({ message: "OK" });
+  }
+
   // Acknowledge webhook immediately to prevent retries from ApiWass
   reply.status(200).send({ message: "OK" });
 
@@ -223,7 +239,7 @@ export const chatRequestHandler = async (
     await prisma.botWhatsappHistory.create({
       data: {
         identifier: `${bot.id}-${sender}`,
-        chat_id: `apiwass-${Date.now()}`,
+        chat_id: messageId, // Use the actual message ID to prevent duplicates
         from: sender,
         human: messageText,
         bot: botReply,
