@@ -132,30 +132,43 @@ export const chatRequestHandler = async (
     return reply.status(200).send({ message: "OK" });
   }
 
+  // Check DB FIRST before adding to cache or acknowledging, to prevent race conditions
+  const isAlreadyProcessed = await prisma.botWhatsappHistory.findFirst({
+    where: {
+      chat_id: messageHash,
+    },
+  });
+
+  if (isAlreadyProcessed) {
+    console.log(`ApiWass Webhook: Ignoring duplicate message (DB hit for ${messageHash})`);
+    return reply.status(200).send({ message: "OK" });
+  }
+
   // Add to cache and set it to expire in 60 seconds
   processedMessagesCache.add(messageHash);
   setTimeout(() => {
     processedMessagesCache.delete(messageHash);
   }, 60000);
 
+  // CREATE A PENDING RECORD IN THE DB IMMEDIATELY TO PREVENT RACE CONDITIONS ACROSS REPLICAS
+  await prisma.botWhatsappHistory.create({
+    data: {
+      identifier: `${bot.id}-${sender}`,
+      chat_id: messageHash, 
+      from: sender,
+      human: messageText,
+      bot: "...", // Placeholder, will be updated later
+      bot_id: bot.id,
+    },
+  });
+
   // Acknowledge webhook immediately to prevent retries from ApiWass
   reply.status(200).send({ message: "OK" });
 
-  // Check DB just in case (e.g. multi-instance deployments or server restarts)
-  // We do this AFTER sending OK to ApiWass to avoid any delay
+  // Process message with Dialoqbase bot in the background
+  // We use setTimeout to completely detach this from the Fastify request lifecycle
   setTimeout(async () => {
     try {
-      const isAlreadyProcessed = await prisma.botWhatsappHistory.findFirst({
-        where: {
-          chat_id: messageHash,
-        },
-      });
-
-      if (isAlreadyProcessed) {
-        console.log(`ApiWass Webhook: Ignoring duplicate message (DB hit for ${messageHash})`);
-        return;
-      }
-
       console.log(`[ApiWass] Iniciando procesamiento para el mensaje de ${sender}`);
       const chat_history = await prisma.botWhatsappHistory.findMany({
       where: {
@@ -252,15 +265,14 @@ export const chatRequestHandler = async (
 
     const botReply = response;
 
-    // Save history
-    await prisma.botWhatsappHistory.create({
-      data: {
-        identifier: `${bot.id}-${sender}`,
-        chat_id: messageHash, // Use the hash as the chat_id
-        from: sender,
-        human: messageText,
-        bot: botReply,
+    // Update the pending history record with the actual bot reply
+    await prisma.botWhatsappHistory.updateMany({
+      where: {
+        chat_id: messageHash,
         bot_id: bot.id,
+      },
+      data: {
+        bot: botReply,
       },
     });
 
